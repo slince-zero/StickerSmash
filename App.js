@@ -1,6 +1,7 @@
-import { useState } from 'react'
+import { useState, useRef } from 'react'
 import { StatusBar } from 'expo-status-bar'
 import { StyleSheet, View } from 'react-native'
+import { GestureHandlerRootView } from 'react-native-gesture-handler'
 import ImageViewer from './components/ImageViewer'
 import Button from './components/Button'
 import CircleButton from './components/CircleButton'
@@ -8,7 +9,9 @@ import IconButton from './components/IconButton'
 import EmojiPicker from './components/EmojiPicker'
 import EmojiList from './components/EmojiList'
 import EmojiSticker from './components/EmojiSticker'
+import { captureRef } from 'react-native-view-shot'
 import * as ImagePicker from 'expo-image-picker'
+import * as MediaLibrary from 'expo-media-library'
 
 const placeholderImageSource = require('./assets/images/background-image.png')
 
@@ -17,6 +20,9 @@ export default function App() {
   const [showAppOptions, setShowAppOptions] = useState(false)
   const [isModalVisible, setIsModalVisible] = useState(false)
   const [pickedEmoji, setPickedEmoji] = useState(null)
+  const [status, requestPermission] = MediaLibrary.usePermissions()
+
+  const imageRef = useRef()
 
   // 选择图片
   const pickImageAsync = async () => {
@@ -47,28 +53,49 @@ export default function App() {
   }
 
   // 保存图片
-  const onSaveImageAsync = async () => {}
+  const onSaveImageAsync = async () => {
+    try {
+      const localUri = await captureRef(imageRef, {
+        height: 440,
+        quality: 1,
+      })
 
+      await MediaLibrary.saveToLibraryAsync(localUri)
+      if (localUri) {
+        alert('Saved!')
+      }
+    } catch (e) {
+      console.log(e)
+    }
+  }
+  // 访问敏感数据，比如用户手机相册时候，需要用户同意访问权限
+  if (status === null) {
+    requestPermission()
+  }
   return (
-    <View style={styles.container}>
+    <GestureHandlerRootView style={styles.container}>
       <View style={styles.imageContainer}>
-        <ImageViewer
-          placeholderImageSource={placeholderImageSource}
-          selectedImage={selectedImage}
-        />
-        {pickedEmoji && (
-          <EmojiSticker
-            imageSize={40}
-            stickerSource={pickedEmoji}
+        <View
+          ref={imageRef}
+          collapsable={false}>
+          <ImageViewer
+            placeholderImageSource={placeholderImageSource}
+            selectedImage={selectedImage}
           />
-        )}
+          {pickedEmoji && (
+            <EmojiSticker
+              imageSize={40}
+              stickerSource={pickedEmoji}
+            />
+          )}
+        </View>
       </View>
       {showAppOptions ? (
         <View style={styles.optionsContainer}>
           <View style={styles.optionsRow}>
             <IconButton
               icon={'refresh'}
-              label='重置'
+              label='返回'
               onPress={onReset}
             />
             <CircleButton onPress={onAddSticker} />
@@ -102,7 +129,7 @@ export default function App() {
         />
       </EmojiPicker>
       <StatusBar style='auto' />
-    </View>
+    </GestureHandlerRootView>
   )
 }
 
