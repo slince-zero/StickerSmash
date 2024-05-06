@@ -30,7 +30,7 @@ export default function Button({ label, theme ,onPress}) {
     <View style={styles.buttonContainer}>
       <Pressable
         style={styles.button}
-        onPress={() => alert('你点击了button2')}>
+        onPress={onPress}>
         <Text style={styles.buttonLabel}>{label}</Text>
       </Pressable>
     </View>
